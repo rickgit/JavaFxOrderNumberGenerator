@@ -1,0 +1,2 @@
+# JavaFxOrderNumberGenerator-
+Order number generator 
