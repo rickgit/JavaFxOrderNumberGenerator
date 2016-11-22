@@ -3,7 +3,9 @@ package sample;
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
 import javafx.concurrent.Task;
+import javafx.concurrent.WorkerStateEvent;
 import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
@@ -32,7 +34,7 @@ public class Controller {
 
     @FXML
     protected void handleSubmitButtonAction(ActionEvent event) {
-        btnConfirm.setDisable(true);
+        btnConfirm.setDisable(false);
         final String preStr = tfPreStr.getText();
         final String startNum = tfStartInt.getText();
         final String intervalStr = tfIntervalInt.getText();
@@ -46,16 +48,17 @@ public class Controller {
             task.messageProperty().addListener(new ChangeListener<String>() {
                 @Override
                 public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
-
+                    System.out.println("newValue"+newValue);
+                }
+            });
+            task.setOnSucceeded(new EventHandler<WorkerStateEvent>() {
+                @Override
+                public void handle(WorkerStateEvent event) {
+                    System.out.println("success");
                 }
             });
             new Thread(task).start();
-            Alert alert = new Alert(Alert.AlertType.INFORMATION);
-            alert.setTitle("提示");
-            alert.setHeaderText(null);
-            File file = new File("archive.txt");
-            alert.setContentText("数据已经写入" + file.getAbsolutePath() + "文件");
-            alert.showAndWait();
+
         } catch (Exception e) {
             Alert alert = new Alert(Alert.AlertType.INFORMATION);
             alert.setTitle("提示");
@@ -65,12 +68,40 @@ public class Controller {
         }
     }
 
-    public static Task createTask(final Button btnConfirm, final String pre, final int start, final int length, final int interval) {
+    public static Task createTask(final Button btnConfirm, final String pre, final int startParam, final int length, final int interval) {
         return new Task() {
             @Override
             protected Object call() throws Exception {
-                writeToFile(pre, start, length, interval);
+                File file = new File("archive.txt");
+                int start=startParam;
+                if (!file.exists())
+                    try {
+                        file.createNewFile();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                try {
+                    BufferedWriter fileWriter = new BufferedWriter(new FileWriter(file.getName()));
+                    for (int i = 0; i < length; i++) {
+                        fileWriter.write(pre + start + " to " + pre + (start = start + interval));
+                        fileWriter.write(System.getProperty("line.separator"));
+                        start++;
+                        updateMessage(""+(i + 1/ length));//messageProperty 显示是
+                        updateProgress(i + 1, length);
+                    }
+                    fileWriter.flush();
+                    fileWriter.close();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                alert.setTitle("提示");
+                alert.setHeaderText(null);
+                File outFile = new File("archive.txt");
+                alert.setContentText("数据已经写入" + outFile.getAbsolutePath() + "文件");
+                alert.showAndWait();
                 btnConfirm.setDisable(true);
+
                 return true;
             }
         };
@@ -92,6 +123,7 @@ public class Controller {
                 fileWriter.write(pre + start + " to " + pre + (start = start + interval));
                 fileWriter.write(System.getProperty("line.separator"));
                 start++;
+
             }
             fileWriter.flush();
             fileWriter.close();
