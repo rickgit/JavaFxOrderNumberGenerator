@@ -4,3 +4,7 @@ Order number generator
 Settins->Artifacts->javafx tab
 
 ![设置](img/setting.png)
+
+
+##项目运行后的界面
+![项目运行后的界面](img/app.png)
